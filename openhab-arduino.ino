@@ -1,16 +1,17 @@
-
 #include <SoftwareSerial.h>
-#include <EEPROM.h>
-#include "dht11.h"
+
+#define ARDUINO_NAME "Arduino2"
+
+#define MODULE_DHT11
+#define MODULE_DHT11_PIN 7
 
 
-#define DHT11PIN 7
-#define DHT11_DELAY 10000
+#include "module.h"
+
 #define PIN_WIFI_STATUS 13
-String MQTT_ALIVE_TOPIC = "/openhab/in/Arduino1/state";
 
 typedef struct {
-	String topicCommand; //!\warning, do not use too long topic !
+	String topicCommand;
 	String topicState;
 	int pin;
 } RelayTopic;
@@ -18,20 +19,16 @@ typedef struct {
 #define NB_RELAY_TOPICS 2
 RelayTopic relayTopics[] = {
 	{
-		"/openhab/out/Arduino2Relay1/command",
-		"/openhab/in/Arduino2Relay1/state",
+		"/openhab/out/" ARDUINO_NAME "Relay1/command",
+		"/openhab/in/" ARDUINO_NAME "Relay1/state",
 		5
 	},
 	{
-		"/openhab/out/Arduino2Relay2/command",
-		"/openhab/in/Arduino2Relay2/state",
+		"/openhab/out/" ARDUINO_NAME "Relay2/command",
+		"/openhab/in/" ARDUINO_NAME "Relay2/state",
 		6
 	}
 };
-
-String TEMP_TOPIC = "/openhab/in/Arduino2Temp1/state";
-String HUMIDITY_TOPIC = "/openhab/in/Arduino2Humi1/state";
-dht11 DHT11;
 
 SoftwareSerial wifiSerial(2, 3);
 String buffer;
@@ -59,13 +56,16 @@ void setup() {
 
 	//avoir echo
 	sendConfigCommand("uart.setup(0, 9600, 8, 0, 1, 0)");
+	
+	loadModules();
 }
 
 void loop() {
 	statusLed();
 	checkNetworkStatus();
 	readWifiSerial();
-	checkDTH();
+	
+	loopModules();
 }
 
 void sendCommand(String cmd) {
@@ -242,42 +242,5 @@ void handleTopicReponse(String &cmd) {
 
 	Serial.print("Unknown topic ");
 	Serial.println(topic);
-}
-
-unsigned long lastDHT11 = 0;
-
-void checkDTH() {
-	unsigned long now = millis();
-	if (now - lastDHT11 > DHT11_DELAY && isConnected()) {
-		lastDHT11 = now;
-
-		int chk = DHT11.read(DHT11PIN);
-
-		Serial.print("Read sensor: ");
-		switch (chk) {
-			case DHTLIB_OK:
-				Serial.println("OK");
-				break;
-			case DHTLIB_ERROR_CHECKSUM:
-				Serial.println("Checksum error");
-				break;
-			case DHTLIB_ERROR_TIMEOUT:
-				Serial.println("Time out error");
-				break;
-			default:
-				Serial.println("Unknown error");
-				break;
-		}
-
-		Serial.print("Humidity (%):\t\t");
-		Serial.println((float) DHT11.humidity, 2);
-
-		Serial.print("Temperature (C):\t");
-		Serial.println((float) DHT11.temperature, 2);
-		
-		mqttPublish(TEMP_TOPIC, String(DHT11.temperature));
-		mqttPublish(HUMIDITY_TOPIC, String(DHT11.humidity));
-
-	}
 }
 
