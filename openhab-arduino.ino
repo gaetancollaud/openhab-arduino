@@ -1,14 +1,6 @@
 #include <SoftwareSerial.h>
 
-#define ARDUINO_NAME "Arduino2"
-
-#define MODULE_DHT11
-#define MODULE_DHT11_PIN 7
-
-#define MODULE_RELAY
-#define MODULE_RELAY_PIN1 5
-#define MODULE_RELAY_PIN2 6
-
+#include "config_chambre_gaetan.h"
 
 #include "module.h"
 
