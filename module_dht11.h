@@ -9,12 +9,9 @@ String HUMIDITY_TOPIC = "/openhab/in/" ARDUINO_NAME "Humi1/state";
 
 dht11 DHT11;
 
-void load_dht11() {
-
-}
 unsigned long lastDHT11 = 0;
 
-void loop_dht11() {
+void moduleDHT11Loop() {
 	unsigned long now = millis();
 	if (now - lastDHT11 > MODULE_DHT11_DELAY && isConnected()) {
 		lastDHT11 = now;

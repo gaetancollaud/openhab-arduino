@@ -5,6 +5,10 @@
 #define MODULE_DHT11
 #define MODULE_DHT11_PIN 7
 
+#define MODULE_RELAY
+#define MODULE_RELAY_PIN1 5
+#define MODULE_RELAY_PIN2 6
+
 
 #include "module.h"
 
@@ -16,19 +20,6 @@ typedef struct {
 	int pin;
 } RelayTopic;
 
-#define NB_RELAY_TOPICS 2
-RelayTopic relayTopics[] = {
-	{
-		"/openhab/out/" ARDUINO_NAME "Relay1/command",
-		"/openhab/in/" ARDUINO_NAME "Relay1/state",
-		5
-	},
-	{
-		"/openhab/out/" ARDUINO_NAME "Relay2/command",
-		"/openhab/in/" ARDUINO_NAME "Relay2/state",
-		6
-	}
-};
 
 SoftwareSerial wifiSerial(2, 3);
 String buffer;
@@ -46,18 +37,13 @@ void setup() {
 	buffer.reserve(200);
 	buffer = "";
 
-	for (int i = 0; i < NB_RELAY_TOPICS; i++) {
-		pinMode(relayTopics[i].pin, OUTPUT);
-		digitalWrite(relayTopics[i].pin, HIGH);
-	}
-
 	Serial.begin(115200);
 	wifiSerial.begin(9600);
 
 	//avoir echo
 	sendConfigCommand("uart.setup(0, 9600, 8, 0, 1, 0)");
 	
-	loadModules();
+	moduleLoad(&Serial);
 }
 
 void loop() {
@@ -65,7 +51,7 @@ void loop() {
 	checkNetworkStatus();
 	readWifiSerial();
 	
-	loopModules();
+	moduleLoop();
 }
 
 void sendCommand(String cmd) {
@@ -93,14 +79,6 @@ void mqttPublish(String topic, String data) {
 void initMQTT() {
 	sendCommand("mqClose()");
 	sendCommand("mqConnect()");
-}
-
-void initMQTTTopics() {
-	mqttSubsribe("/topic");
-
-	for (int i = 0; i < NB_RELAY_TOPICS; i++) {
-		mqttSubsribe(relayTopics[i].topicCommand);
-	}
 }
 
 void readWifiSerial() {
@@ -176,7 +154,7 @@ void handleInformationMQTT(String &status) {
 	bool oldMqttConnected = mqttConnected;
 	mqttConnected = status.indexOf("1") != -1;
 	if (!oldMqttConnected && mqttConnected) {
-		initMQTTTopics();
+		moduleMQTTRegister();
 	}
 	adjustLedDelay();
 }
@@ -220,27 +198,11 @@ void handleTopicReponse(String &cmd) {
 	topic.trim();
 	String data = cmd.substring(index + 1);
 	data.trim();
-
-	for (int i = 0; i < NB_RELAY_TOPICS; i++) {
-		RelayTopic* relay = &relayTopics[i];
-		if (relay->topicCommand.equalsIgnoreCase(topic)) {
-			if (data.equalsIgnoreCase("on")) {
-				digitalWrite(relay->pin, LOW);
-			} else if (data.equalsIgnoreCase("off")) {
-				digitalWrite(relay->pin, HIGH);
-			} else {
-				Serial.print("Unknown value '");
-				Serial.print(data);
-				Serial.print("' for topic ");
-				Serial.println(topic);
-				return;
-			}
-			mqttPublish(relay->topicState, data);
-			return;
-		}
-	}
-
-	Serial.print("Unknown topic ");
-	Serial.println(topic);
+	
+	int indexOfArduinoName = topic.indexOf(ARDUINO_NAME)+sizeof(ARDUINO_NAME);
+	int indexOfEndItem = topic.indexOf("/", indexOfArduinoName);
+	String item = topic.substring(indexOfArduinoName-1, indexOfEndItem);
+	
+	moduleItemReceived(item, data);
 }
 
