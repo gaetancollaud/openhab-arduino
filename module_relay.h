@@ -1,3 +1,4 @@
+#include <arduino.h>
 
 void moduleRelayCallback(String &topic, String &value);
 

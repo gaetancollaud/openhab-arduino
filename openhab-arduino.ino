@@ -1,6 +1,6 @@
 #include <SoftwareSerial.h>
 
-#include "config_chambre_gaetan.h"
+#include "config_tv.h"
 
 #include "module.h"
 
@@ -13,7 +13,7 @@ typedef struct {
 } RelayTopic;
 
 
-SoftwareSerial wifiSerial(2, 3);
+SoftwareSerial wifiSerial(2, 3);// RX, TX
 String buffer;
 
 int ledDelay = 10;
@@ -31,6 +31,9 @@ void setup() {
 
 	Serial.begin(115200);
 	wifiSerial.begin(9600);
+	
+	//wait for the wifi module to start
+	delay(1000);
 
 	//avoir echo
 	sendConfigCommand("uart.setup(0, 9600, 8, 0, 1, 0)");
@@ -56,8 +59,7 @@ void sendCommand(String cmd) {
 
 void sendConfigCommand(String cmd) {
 	sendCommand(cmd);
-	//	delay(1000);
-	//	readWifiSerial();
+	delay(200);
 }
 
 void mqttSubsribe(String topic) {

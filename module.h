@@ -15,6 +15,10 @@ Stream *moduleStream;
 #include "module_relay.h"
 #endif
 
+#ifdef MODULE_LED_STRIP
+#include "module_led_strip.h"
+#endif
+
 typedef void (*MODULE_TOPIC_CALLBACK)(String, String);
 
 typedef struct {
@@ -41,6 +45,10 @@ void moduleLoad(Stream* stream) {
 	moduleRelayLoad();
 	stream->println("Load module Relay");
 #endif
+#ifdef MODULE_LED_STRIP
+	moduleLedStripLoad();
+	stream->println("Load module LedStrip");
+#endif
 }
 
 void moduleMQTTRegister() {
@@ -53,6 +61,9 @@ void moduleMQTTRegister() {
 void moduleLoop() {
 #ifdef MODULE_DHT11
 	moduleDHT11Loop();
+#endif
+#ifdef MODULE_LED_STRIP
+	moduleLedStripLoop();
 #endif
 }
 
