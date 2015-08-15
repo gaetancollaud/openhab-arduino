@@ -22,7 +22,7 @@ void moduleRelayCallback(String &item, String &value) {
 	moduleStream->println(value);
 
 	int relayNumber = item.substring(5).toInt();
-	int pinValue = utilIsON(value) ? LOW : HIGH;
+	int pinValue = utilIsOnWithCheck(value) ? LOW : HIGH;
 	
 	switch(relayNumber){
 		case 1:

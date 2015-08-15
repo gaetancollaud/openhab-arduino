@@ -1,7 +1,17 @@
-bool utilIsON(String &data) {
-	if (data.equalsIgnoreCase("ON")) {
+
+
+
+bool utilIsOn(String &data){
+	return data.equalsIgnoreCase("On");
+}
+bool utilIsOff(String &data){
+	return data.equalsIgnoreCase("Off");
+}
+
+bool utilIsOnWithCheck(String &data) {
+	if (utilIsOn(data)) {
 		return true;
-	} else if (data.equalsIgnoreCase("OFF")) {
+	} else if (utilIsOff(data)) {
 		return false;
 	} else {
 		moduleStream->print("Unknown ON/OFF value '");

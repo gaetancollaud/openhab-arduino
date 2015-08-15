@@ -4,7 +4,7 @@
 
 WS2812 LED(MODULE_LED_STRIP_NUMBER);
 
-cRGB value;
+cRGB lastColor = {255, 255, 255};
 
 void moduleLedStripCallback(String &topic, String &value);
 
@@ -14,23 +14,17 @@ void moduleLedStripLoad() {
 
 	LED.setColorOrderRGB(); // Uncomment for RGB color order
 
-	moduleTopicRegister("Strip", (void*) moduleLedStripCallback);
+	moduleTopicRegister("StripColor", (void*) moduleLedStripCallback);
 }
 
-void convertHSVtoRGB(float h, float s, float v, byte rgb[]) {
-
+cRGB convertHSVtoRGB(float h, float s, float v) {
 	double r = 0, g = 0, b = 0;
-
-	moduleStream->println("========= HSV");
-	moduleStream->println(h);
-	moduleStream->println(s);
-	moduleStream->println(v);
-
 	s /= 100;
 	v /= 100;
 
+	float t = (float) (((int) (h / 60 * 1000)) % 2000) / 1000;
 	float c = v*s;
-	float x = c * (1 - abs(((int)(h / 60)) % 2) - 1);
+	float x = c * (1 - abs(t - 1));
 	float m = v - c;
 
 	if (h < 60) {
@@ -53,41 +47,51 @@ void convertHSVtoRGB(float h, float s, float v, byte rgb[]) {
 		b = x;
 	}
 
-	moduleStream->println("========= RGB double");
-	moduleStream->println(r);
-	moduleStream->println(g);
-	moduleStream->println(b);
+	return
+	{
+		((r + m) * 255),
+				((g + m) * 255),
+				((b + m) * 255)
+	};
+}
 
-	rgb[0] = (byte) (r * 255);
-	rgb[1] = (byte) (g * 255);
-	rgb[2] = (byte) (b * 255);
+void setLedStripColor(cRGB &color) {
+	for (int i = 0; i < MODULE_LED_STRIP_NUMBER; i++) {
+		LED.set_crgb_at(i, color);
+	}
+	LED.sync();
 }
 
 void moduleLedStripCallback(String &item, String &value) {
-	moduleStream->print("led strip received : ");
-	moduleStream->print(item);
-	moduleStream->print(" = ");
-	moduleStream->println(value);
+	//	moduleStream->print("led strip received : ");
+	//	moduleStream->print(item);
+	//	moduleStream->print(" = ");
+	//	moduleStream->println(value);
 
-	int split1 = value.indexOf(',');
-	int split2 = value.indexOf(',', split1 + 1);
-	float h =  value.substring(0, split1).toFloat();
-	float s =  value.substring(split1 + 1, split2).toFloat();
-	float v =  value.substring(split2 + 1, value.length()).toFloat();
+	if (utilIsOn(value)) {
+		setLedStripColor(lastColor);
+	} else if (utilIsOff(value)) {
+		cRGB c = {0, 0, 0};
+		setLedStripColor(c);
+	} else {
+		int split1 = value.indexOf(',');
+		int split2 = value.indexOf(',', split1 + 1);
+		float h = value.substring(0, split1).toFloat();
+		float s = value.substring(split1 + 1, split2).toFloat();
+		float v = value.substring(split2 + 1, value.length()).toFloat();
 
-	byte rgb[3];
-	convertHSVtoRGB(h, s, v, rgb);
-	moduleStream->println("========= RGB byte (hex)");
-	moduleStream->println(rgb[0], HEX);
-	moduleStream->println(rgb[1], HEX);
-	moduleStream->println(rgb[2], HEX);
+		//		moduleStream->println("========= RGB byte (hex)");
+		//		moduleStream->println(rgb.r, HEX);
+		//		moduleStream->println(rgb.g, HEX);
+		//		moduleStream->println(rgb.b, HEX);
 
+		lastColor = convertHSVtoRGB(h, s, v);
+		setLedStripColor(lastColor);
+	}
 
-
-	//TODO
+	mqttPublish("/openhab/in/" ARDUINO_NAME "StripColor/state", value);
 }
 
 void moduleLedStripLoop() {
 	//TODO
-	//	LED.sync(); // Sends the data to the LEDs
 }
