@@ -19,6 +19,10 @@ Stream *moduleStream;
 #include "module_led_strip.h"
 #endif
 
+#ifdef MODULE_AMP_METER
+#include "module_amp_meter.h"
+#endif
+
 typedef void (*MODULE_TOPIC_CALLBACK)(String, String);
 
 typedef struct {
@@ -49,6 +53,10 @@ void moduleLoad(Stream* stream) {
 	moduleLedStripLoad();
 	stream->println("Load module LedStrip");
 #endif
+#ifdef MODULE_AMP_METER
+	moduleAmpMeterLoad();
+	stream->println("Load module AmpMeter");
+#endif
 }
 
 void moduleMQTTRegister() {
@@ -59,11 +67,15 @@ void moduleMQTTRegister() {
 }
 
 void moduleLoop() {
+	unsigned long now=micros();
 #ifdef MODULE_DHT11
 	moduleDHT11Loop();
 #endif
 #ifdef MODULE_LED_STRIP
 	moduleLedStripLoop();
+#endif
+#ifdef MODULE_AMP_METER
+	moduleAmpMeterLoop(&now);
 #endif
 }
 

@@ -1,6 +1,9 @@
 #include <SoftwareSerial.h>
 
-#include "config_tv.h"
+#include "config_salon_lampe.h"
+
+bool wifiConnected = false;
+bool mqttConnected = false;
 
 #include "module.h"
 
@@ -19,8 +22,6 @@ String buffer;
 int ledDelay = 10;
 bool ledState = LOW;
 
-bool wifiConnected = false;
-bool mqttConnected = false;
 
 void setup() {
 	pinMode(PIN_WIFI_STATUS, OUTPUT);
