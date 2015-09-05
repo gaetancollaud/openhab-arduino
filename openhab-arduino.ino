@@ -51,8 +51,8 @@ void loop() {
 }
 
 void sendCommand(String cmd) {
-	Serial.print("Sending command : ");
-	Serial.println(cmd);
+//	Serial.print("Sending command : ");
+//	Serial.println(cmd);
 	wifiSerial.println(cmd);
 	wifiSerial.flush();
 	delay(200);
@@ -181,6 +181,8 @@ void handleInformation(String &cmd) {
 		handleInformationMQTT(data);
 	} else if (what.equalsIgnoreCase("sub")) {
 		//subscription ok, nothing to handle
+	} else if (what.equalsIgnoreCase("publish")) {
+		//publish ok, nothing to handle
 	} else {
 		Serial.print("Unknown information : ");
 		Serial.println(cmd);

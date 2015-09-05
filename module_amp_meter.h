@@ -1,47 +1,73 @@
 #include <arduino.h>
 
-#define MODULE_AMP_METER_HALF_HIGH 512
+#include "RunningMedian.h"
 
-unsigned long moduleAmpMeterDelay;
-unsigned long moduleAmpMeterNextTime;
-long moduleAmpMeterSum;
-int moduleAmpMeterCount;
-int moduleAmpMeterCountLimit;
+#define MEDIAN_SIZE 10
 
-String AMP_METER_TOPIC = "/openhab/in/" ARDUINO_NAME "Amp1/state";
+String AMP_METER_AMP_TOPIC = "/openhab/in/" ARDUINO_NAME "Amp1/state";
+String AMP_METER_WATT_TOPIC = "/openhab/in/" ARDUINO_NAME "Watt1/state";
+
+
+
+RunningMedian moduleAmpMeterMedian = RunningMedian(MEDIAN_SIZE);
+
+float moduleAmpMeterlastValue = -1;
+unsigned long moduleAmpMeterDelayCapture = 200000;
+unsigned long moduleAmpMeterNextTimeCapture = 0;
+unsigned long moduleAmpMeterDelaySend = moduleAmpMeterDelayCapture*MEDIAN_SIZE;
+unsigned long moduleAmpMeterNextTimeSend = moduleAmpMeterDelaySend;
+
+float moduleAmpMetergetAmp() {
+
+	int readValue; //value read from the sensor
+	int maxValue = 0; // store max value here
+	int minValue = 1024; // store min value here
+
+	uint32_t start_time = millis();
+	while ((millis() - start_time) <= 20) {
+		readValue = analogRead(MODULE_AMP_METER_PIN);
+		if (readValue > maxValue) {
+			maxValue = readValue;
+		}
+		if (readValue < minValue) {
+			minValue = readValue;
+		}
+	}
+
+	// Subtract min from max
+	// peak = (max-min)/2
+	// v = peak*5v/1024
+	// rms = v*0.707
+	// a = rms*1000/mVperAmp
+	// => (max-min)*1.7260/mVperAmp
+
+	return (((maxValue - minValue) * 1.7260) / MODULE_AMP_METER_MV_PER_AMP);
+}
+
 
 //void moduleAmpMeterCallback(String &topic, String &value);
 
 void moduleAmpMeterLoad() {
-	//  1s/(Hz*2)
-	moduleAmpMeterCountLimit = MODULE_AMP_METER_HZ;
-	moduleAmpMeterDelay = 1000 / moduleAmpMeterCountLimit;
-	moduleAmpMeterDelay *= 1000;
-	moduleAmpMeterNextTime = micros();
-	moduleAmpMeterSum = 0;
-	moduleAmpMeterCount = 0;
 }
 
-void moduleAmpMeterComputeAndSend() {
+void moduleAmpMeterSendIfChanged() {
 	if (mqttConnected) {
-		double amp = moduleAmpMeterSum;
-		amp /= moduleAmpMeterCountLimit;
-		amp /= MODULE_AMP_METER_HALF_HIGH;
-		amp *= MODULE_AMP_METER_MAX_AMP;
-		mqttPublish(AMP_METER_TOPIC, String(amp, 3));
+		float amp = moduleAmpMeterMedian.getMedian();
+		if (amp != moduleAmpMeterlastValue) {
+			moduleAmpMeterlastValue = amp;
+//			mqttPublish(AMP_METER_AMP_TOPIC, String(amp, 3));
+			mqttPublish(AMP_METER_WATT_TOPIC, String(amp * 230, 3));
+		}
 	}
 }
 
 void moduleAmpMeterLoop(unsigned long *now) {
-	if (*now > moduleAmpMeterNextTime) {
-		moduleAmpMeterNextTime += moduleAmpMeterDelay;
-		moduleAmpMeterSum += abs(analogRead(MODULE_AMP_METER_PIN) - MODULE_AMP_METER_HALF_HIGH);
-		moduleAmpMeterCount++;
-		if (moduleAmpMeterCount >= moduleAmpMeterCountLimit) {
-			moduleAmpMeterComputeAndSend();
-			moduleAmpMeterCount = 0;
-			moduleAmpMeterSum = 0;
+	if (*now > moduleAmpMeterNextTimeCapture) {
+		moduleAmpMeterNextTimeCapture += moduleAmpMeterDelayCapture;
+		moduleAmpMeterMedian.add(moduleAmpMetergetAmp());
+		if (*now > moduleAmpMeterNextTimeSend) {
+			moduleAmpMeterNextTimeSend += moduleAmpMeterDelaySend;
+			moduleAmpMeterSendIfChanged();
 		}
-
 	}
 }
