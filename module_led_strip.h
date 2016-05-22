@@ -80,19 +80,18 @@ void moduleLedStripCallback(String &item, String &value) {
 		float s = value.substring(split1 + 1, split2).toFloat();
 		float v = value.substring(split2 + 1, value.length()).toFloat();
 
-		//		moduleStream->println("========= RGB byte (hex)");
-		//		moduleStream->println(rgb.r, HEX);
-		//		moduleStream->println(rgb.g, HEX);
-		//		moduleStream->println(rgb.b, HEX);
-
 		lastColor = convertHSVtoRGB(h, s, v);
 		setLedStripColor(lastColor);
+
+				// moduleStream->println("========= RGB byte (hex)");
+				// moduleStream->println(lastColor.r, HEX);
+				// moduleStream->println(lastColor.g, HEX);
+				// moduleStream->println(lastColor.b, HEX);
 	}
 
 	mqttPublish("/openhab/in/" ARDUINO_NAME "StripColor/state", value);
 }
 
 void moduleLedStripLoop() {
-	now
 	//TODO
 }

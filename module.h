@@ -62,7 +62,10 @@ void moduleLoad(Stream* stream) {
 void moduleMQTTRegister() {
 	for (int i = 0; i < moduleItemsIndex; i++) {
 		ModuleItem *mt = &moduleItems[i];
-		mqttSubsribe("/openhab/out/" ARDUINO_NAME "" + mt->item + "/command");
+		String topic = "/openhab/out/" ARDUINO_NAME "" + mt->item + "/command";
+		mqttSubsribe(topic);
+		Serial.print("reg topic : ");
+		Serial.println(topic);
 	}
 }
 

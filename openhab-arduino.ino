@@ -1,6 +1,6 @@
 #include <SoftwareSerial.h>
 
-#include "config_salon_lampe.h"
+#include "config_infinite_table.h"
 
 bool wifiConnected = false;
 bool mqttConnected = false;
@@ -32,13 +32,13 @@ void setup() {
 
 	Serial.begin(115200);
 	wifiSerial.begin(9600);
-	
+
 	//wait for the wifi module to start
 	delay(1000);
 
 	//avoir echo
 	sendConfigCommand("uart.setup(0, 9600, 8, 0, 1, 0)");
-	
+
 	moduleLoad(&Serial);
 }
 
@@ -46,7 +46,7 @@ void loop() {
 	statusLed();
 	checkNetworkStatus();
 	readWifiSerial();
-	
+
 	moduleLoop();
 }
 
@@ -195,11 +195,10 @@ void handleTopicReponse(String &cmd) {
 	topic.trim();
 	String data = cmd.substring(index + 1);
 	data.trim();
-	
+
 	int indexOfArduinoName = topic.indexOf(ARDUINO_NAME)+sizeof(ARDUINO_NAME);
 	int indexOfEndItem = topic.indexOf("/", indexOfArduinoName);
 	String item = topic.substring(indexOfArduinoName-1, indexOfEndItem);
-	
+
 	moduleItemReceived(item, data);
 }
-
